@@ -12,7 +12,6 @@ import android.os.Handler
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import java.util.Dictionary
 import java.util.Random
 
 class CustomView : View {
@@ -87,9 +86,7 @@ class CustomView : View {
     }
 
     private fun addToSequence() {
-        for (i in 0 until level) {
-            sequence.add(random.nextInt(4))
-        }
+        sequence.add(random.nextInt(4))
     }
 
     fun startGame() {
