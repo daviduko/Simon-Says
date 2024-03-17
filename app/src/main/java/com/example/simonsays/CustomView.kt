@@ -6,30 +6,28 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.media.AudioAttributes
+import android.media.SoundPool
 import android.os.Handler
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import java.util.*
+import java.util.Dictionary
+import java.util.Random
 
 class CustomView : View {
-    /*private val redPaint: Paint = Paint().apply {
-        color = Color.RED
-        style = Paint.Style.FILL
-    }
-    private val greenPaint: Paint = Paint().apply {
-        color = Color.GREEN
-        style = Paint.Style.FILL
-    }
-    private val bluePaint: Paint = Paint().apply {
-        color = Color.BLUE
-        style = Paint.Style.FILL
-    }
-    private val yellowPaint: Paint = Paint().apply {
-        color = Color.YELLOW
-        style = Paint.Style.FILL
-    }*/
+    private lateinit var soundPool: SoundPool
+    private val random = Random()
+    private val handler = Handler()
 
+    private var soundIds = mutableListOf<Int>()
+    private val sequence: MutableList<Int> = mutableListOf()
+    private var sequenceIndex: Int = 0
+    private var playerSequenceIndex: Int = 0
+    private var level: Int = 1
+    private var score: Int = 0
+    private var isPlayingSequence: Boolean = false
+    private var isPlaying: Boolean = false
     private val colors = arrayOf(Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW)
 
     private val sequencePaint: Paint = Paint().apply {
@@ -52,18 +50,6 @@ class CustomView : View {
         strokeWidth = 6f
     }
 
-    private val random = Random()
-    private val handler = Handler()
-
-    private val sequence: MutableList<Int> = mutableListOf()
-    //private val playerSequence: MutableList<Int> = mutableListOf()
-    private var sequenceIndex: Int = 0
-    private var playerSequenceIndex: Int = 0
-    private var level: Int = 1
-    private var score: Int = 0
-    private var isPlayingSequence: Boolean = false
-    private var isPlaying: Boolean = false
-
     constructor(context: Context) : super(context) {
         init(null)
     }
@@ -73,7 +59,25 @@ class CustomView : View {
     }
 
     private fun init(attrs: AttributeSet?) {
+        initSoundPool()
         resetGame()
+    }
+
+    private fun initSoundPool() {
+        soundPool = SoundPool.Builder()
+            .setMaxStreams(4)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            .build()
+
+        soundIds.add(soundPool.load(context, R.raw.red_sound, 1))
+        soundIds.add(soundPool.load(context, R.raw.green_sound, 1))
+        soundIds.add(soundPool.load(context, R.raw.blue_sound, 1))
+        soundIds.add(soundPool.load(context, R.raw.yellow_sound, 1))
     }
 
     private fun resetGame() {
@@ -105,15 +109,14 @@ class CustomView : View {
     private fun showNextColor() {
         if (sequenceIndex < sequence.size) {
             val currentColor = sequence[sequenceIndex]
+            soundPool.play(soundIds[currentColor], 1.0f, 1.0f, 1, 0, 1.0f)
             sequencePaint.color = colors[currentColor]
             invalidate()
             handler.postDelayed({
                 sequencePaint.color = Color.WHITE
                 invalidate()
-                handler.postDelayed({
-                    sequenceIndex++
-                    showNextColor()
-                }, 500)
+                sequenceIndex++
+                showNextColor()
             }, 500)
         } else {
             isPlayingSequence = false
@@ -122,8 +125,8 @@ class CustomView : View {
     }
 
 
-    fun updateScore(newScore: Int) {
-        score = newScore
+    fun updateScore() {
+        score++
         invalidate()
     }
 
@@ -163,6 +166,11 @@ class CustomView : View {
             startGame()
         } else{
             playerSequenceIndex++
+            if(playerSequenceIndex == sequence.size){
+                updateScore()
+                level++
+                playSequence()
+            }
         }
     }
 
